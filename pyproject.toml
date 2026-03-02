@@ -1,0 +1,18 @@
+[project]
+name = "ncai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "opencv-python",
+    "streamlit",
+    "torch",
+    "torchvision",
+    "ultralytics",
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
