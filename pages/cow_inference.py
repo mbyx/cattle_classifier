@@ -90,7 +90,7 @@ with st.expander("Models Configuration"):
     cow_confidence_threshold = st.slider("Cow Detection Confidence:", 0.0, 1.0, 0.50)
     tag_confidence_threshold = st.slider("Tag Detection Confidence:", 0.0, 1.0, 0.30)
 
-    use_ocr = st.checkbox("Use OCR:", width="stretch")
+    use_ocr = st.checkbox("Use OCR", width="stretch")
 
 # Load the model resources as needed.
 try:
