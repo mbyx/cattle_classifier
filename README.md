@@ -10,15 +10,10 @@ This project is a cattle classifier that uses machine learning algorithms to cla
    cd cattle_classifier
    ```
 
-2. **Install the required dependencies**:
-   Make sure you have Python installed, and then run:
+2. **Install and Run**:
+   Make sure you have Python and the uv package manager installed, and then run:
    ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run the application**:
-   ```bash
-   streamlit run app.py
+   uv run streamlit run main.py
    ```
 
 4. **Access the application**:
