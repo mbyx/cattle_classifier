@@ -66,7 +66,8 @@ with st.expander("Models Configuration"):
             for f in os.listdir(cow_detector_dir)
             if os.path.isfile(cow_detector_dir / f)
         ],
-        placeholder="yolo26l.pt",
+        index=5,
+        placeholder="yolo26n.pt",
     )
     tag_path = tag_detector_dir / col2.selectbox(
         "Tag Detection Model:",
@@ -82,11 +83,14 @@ with st.expander("Models Configuration"):
         options=[
             f for f in os.listdir(classifier_dir) if os.path.isfile(classifier_dir / f)
         ],
+        index=2,
         placeholder="best_final.pt",
     )
 
     cow_confidence_threshold = st.slider("Cow Detection Confidence:", 0.0, 1.0, 0.50)
     tag_confidence_threshold = st.slider("Tag Detection Confidence:", 0.0, 1.0, 0.30)
+
+    use_ocr = st.checkbox("Use OCR:", width="stretch")
 
 # Load the model resources as needed.
 try:
@@ -103,7 +107,7 @@ uploaded_file = st.file_uploader(
 )
 
 st_frame = st.empty()
-if st.session_state.last_frame is not None and uploaded_file:
+if st.session_state.get("last_frame") is not None and uploaded_file:
     st_frame.image(st.session_state.last_frame)
 
 
@@ -187,7 +191,12 @@ if uploaded_file:
 
                     if tag_cropped_hi_res.size > 0:
                         tag_rgb = cv2.cvtColor(tag_cropped_hi_res, cv2.COLOR_BGR2RGB)
-                        tag_text = tag_ocr.extract_tag_id(tag_cropped_hi_res, reader)
+                        if use_ocr:
+                            tag_text = tag_ocr.extract_tag_id(
+                                tag_cropped_hi_res, reader
+                            )
+                        else:
+                            tag_text = "OCR OFF"
                         if tag_text != "UNREADABLE":
                             detected_tag_texts.append(tag_text)
 
@@ -251,7 +260,7 @@ if uploaded_file:
 st.divider()
 st.subheader("Registration Review")
 
-if st.session_state.detected_cows and uploaded_file:
+if st.session_state.get("detected_cows") and uploaded_file:
     df_to_edit = pd.DataFrame([asdict(c) for c in st.session_state.detected_cows])
 
     edited_cows_df = st.data_editor(

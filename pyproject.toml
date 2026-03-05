@@ -5,12 +5,20 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-#    "opencv-python",
-#    "streamlit",
-#    "torch",
-#    "torchvision",
-#    "ultralytics",
+    "opencv-python-headless",
+    "streamlit",
+    "torch",
+    "torchvision",
+    "ultralytics-opencv-headless",
+    "st-supabase-connection",
+    "pandas",
+    "numpy",
+    "easyocr",
+    "humanize",
+    "plotly",
+    "lapx",
 ]
+
 
 #[[tool.uv.index]]
 #name = "pytorch"
