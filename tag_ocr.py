@@ -3,7 +3,7 @@ import easyocr
 import numpy as np
 
 FAIL_STRING: str = "UNREADABLE"
-UPSCALE_FACTOR: int = 15
+UPSCALE_FACTOR: int = 3
 
 
 # Taken from Hamdan.
