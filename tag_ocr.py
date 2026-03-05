@@ -29,7 +29,7 @@ def extract_tag_id(tag_image: np.ndarray, reader: easyocr.Reader | None = None) 
         processed_image,
         detail=1,
         paragraph=False,
-        allowlist="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-.",
+        allowlist="0123456789",
         width_ths=0.7,
         contrast_ths=0.1,
         min_size=8,
