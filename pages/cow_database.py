@@ -4,25 +4,27 @@ import humanize
 import pandas as pd
 import pytz
 import streamlit as st
+from streamlit_extras.st_keyup import st_keyup
 
-from database import db
+import utils.st
+from utils.database import db
+
+utils.st.initialize_session_state()
 
 st.header("Cow Database", divider="gray")
 st.set_page_config(layout="wide")
 
-df_display = st.session_state.database
+df = st.session_state.database
 
-if df_display is None or df_display.empty:
+if df is None or df.empty:
     st.error("Data file not found or database is empty.")
     st.stop()
 
 
-search_tag = st.text_input("Search by Tag ID", placeholder="e.g: 451222")
+search_tag = st_keyup("Search by Tag ID", placeholder="e.g: 451222")
 
 
-df_to_show = df_display.drop(
-    columns=["Total Behaviours", "Distinct count"], errors="ignore"
-)
+df_to_show = df.drop(columns=["Total Behaviours", "Distinct count"], errors="ignore")
 
 if search_tag:
     filtered_df = df_to_show[
@@ -64,7 +66,6 @@ if selected_data is not None:
 
     raw_ts = selected_data.get("timestamp")
     if pd.notnull(raw_ts):
-
         db_time = pd.to_datetime(raw_ts, format="ISO8601")
         readable_time = humanize.naturaltime(
             datetime.datetime.now(tz=pytz.timezone("Asia/Karachi")) - db_time
@@ -89,7 +90,8 @@ if selected_data is not None:
 
             if selected_img_name:
                 with st.container(border=True):
-                    st.image(
+                    frame = st.empty()
+                    frame.image(
                         db.get_private_image_url(selected_img_name),
                         caption=f"Filename: {selected_img_name}",
                         use_container_width=True,

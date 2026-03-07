@@ -7,12 +7,11 @@ from st_supabase_connection import SupabaseConnection
 
 class DBManager:
     def __init__(self):
-
         self.conn = st.connection("supabase", type=SupabaseConnection)
 
     def fetch_processed_data(self, table_name: str) -> pd.DataFrame:
+        """Fetch the entire database and calculate health columns."""
         try:
-
             response = self.conn.table(table_name).select("*").execute()
             df = pd.DataFrame(response.data)
 
@@ -55,7 +54,6 @@ class DBManager:
 
         records = df.to_dict(orient="records")
         try:
-
             self.conn.table(table_name).upsert(records).execute()  # type: ignore
             st.cache_data.clear()
 
@@ -68,9 +66,8 @@ class DBManager:
         except Exception as e:
             st.error(f"Sync failed: {e}")
 
-    def upload_image(
-        self, uploaded_file, bucket_name: str = "cow_images"
-    ) -> tuple[str, str]:
+    def upload_image(self, uploaded_file, bucket_name: str = "cow_images") -> str:
+        """Upload an image to the Supabase bucket, returning the unique name."""
         try:
             file_extension = uploaded_file.name.split(".")[-1]
             unique_name = f"{uuid.uuid4().hex}.{file_extension}"
@@ -81,23 +78,39 @@ class DBManager:
                 file_options={"content-type": uploaded_file.type},
             )
 
-            public_url = self.conn.client.storage.from_(bucket_name).get_public_url(
-                unique_name
-            )
-
-            return (public_url, unique_name)
+            return unique_name
 
         except Exception as e:
             st.error(f"Storage Upload Failed: {e}")
-            return ("", "")
+            return ""
 
     def get_private_image_url(
         self, file_path: str, bucket_name: str = "cow_images"
     ) -> str:
+        """Get the url for a saved image that expires after an hour."""
         res = self.conn.client.storage.from_(bucket_name).create_signed_url(
             file_path, 3600
         )
         return res["signedURL"]
+
+    # Mutable default arguments are fine here as we're not mutating anything.
+    def insert_cow(
+        self,
+        tag: str,
+        behaviours: list[str] = ["Unknown"],
+        image_names: list[str] = [],
+        image_urls: list[str] = [],
+    ) -> None:
+        """Insert a cow into the database."""
+        new_record = {
+            "tag": tag,
+            "behaviours": behaviours,
+            "image_names": image_names,
+            "image_urls": image_urls,
+        }
+
+        new_df = pd.DataFrame([new_record])
+        db.sync_dataframe(new_df, "CowDatabase")
 
 
 db = DBManager()

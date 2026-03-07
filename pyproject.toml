@@ -17,6 +17,7 @@ dependencies = [
     "humanize",
     "plotly",
     "lapx",
+    "streamlit-extras",
 ]
 
 

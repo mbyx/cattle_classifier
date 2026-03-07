@@ -6,6 +6,10 @@ import plotly.express as px
 import pytz
 import streamlit as st
 
+import utils.st
+
+utils.st.initialize_session_state()
+
 st.set_page_config(layout="centered")
 
 st.title("Cattle Dashboard")
@@ -15,37 +19,33 @@ df = st.session_state.database
 health_overview_column, activity_distribution_column = st.columns(2)
 
 with health_overview_column:
-    if "Health" in df.columns:
-        health_counts = df["Health"].value_counts().reset_index()
-        health_counts.columns = ["Status", "Count"]
+    health_counts = df["Health"].value_counts().reset_index()
+    health_counts.columns = ["Status", "Count"]
 
-        fig = px.pie(
-            health_counts,
-            values="Count",
-            names="Status",
-            hole=0.4,
-            color="Status",
-            color_discrete_map={"Healthy": "#2ecc71", "Unhealthy": "#e74c3c"},
-        )
+    fig = px.pie(
+        health_counts,
+        values="Count",
+        names="Status",
+        hole=0.4,
+        color="Status",
+        color_discrete_map={"Healthy": "#2ecc71", "Unhealthy": "#e74c3c"},
+    )
 
-        fig.update_layout(
-            margin=dict(t=20, b=20, l=0, r=0),
-            height=300,
-            legend=dict(
-                orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5
-            ),
-        )
+    fig.update_layout(
+        margin=dict(t=20, b=20, l=0, r=0),
+        height=300,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+    )
 
-        st.subheader("Herd Health Overview", anchor=False)
-        st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Herd Health Overview", anchor=False)
+    st.plotly_chart(fig, use_container_width=True)
 
 with activity_distribution_column:
     all_behaviours = []
 
-    if "behaviours" in df.columns:
-        for row_list in df["behaviours"]:
-            if isinstance(row_list, list):
-                all_behaviours.extend(row_list)
+    for row_list in df["behaviours"]:
+        if isinstance(row_list, list):
+            all_behaviours.extend(row_list)
 
     if all_behaviours:
         target_behaviours = ["eat", "drink", "stand"]
@@ -80,40 +80,35 @@ with activity_distribution_column:
     else:
         st.warning("No behavioral data found.")
 
+
 st.info("Monitor real-time behavioral data and manage your livestock registry below.")
 
 total_cows_column, last_updated_column, pictures_stored_column = st.columns(3)
 
-total_cows = len(df) if df is not None else 0
-total_cows_column.metric("Total Cows Registered", total_cows)
+total_cows = len(df)
 
-local_tz = pytz.timezone("Asia/Karachi")
-
-raw_time = st.session_state.get("last_registration")
-if raw_time is None and "timestamp" in df.columns:
-    latest_db_time = pd.to_datetime(df["timestamp"], format="ISO8601").max()
-    if pd.notnull(latest_db_time):
-        raw_time = latest_db_time
-
-if raw_time is not None:
+# Calculate human readable latest database time delta.
+latest_db_time = pd.to_datetime(df["timestamp"], format="ISO8601").max()
+if pd.notnull(latest_db_time):
+    raw_time = latest_db_time
     if hasattr(raw_time, "to_pydatetime"):
         raw_time = raw_time.to_pydatetime()
-    readable_time = humanize.naturaltime(datetime.datetime.now(tz=local_tz) - raw_time)
+    readable_time = humanize.naturaltime(
+        datetime.datetime.now(tz=pytz.timezone("Asia/Karachi")) - raw_time
+    )
 else:
     readable_time = "N/A"
 
+total_pictures = (
+    df["image_names"]
+    .apply(lambda x: len([img for img in x if img]) if isinstance(x, list) else 0)
+    .sum()
+)
+
+total_cows_column.metric("Total Cows Registered", total_cows)
 last_updated_column.metric("Last Updated", readable_time)
+pictures_stored_column.metric("Pictures Stored", total_pictures)
 
-if "image_names" in df.columns:
-    total_pics = (
-        df["image_names"]
-        .apply(lambda x: len([img for img in x if img]) if isinstance(x, list) else 0)
-        .sum()
-    )
-else:
-    total_pics = 0
-
-pictures_stored_column.metric("Pictures Stored", total_pics)
 
 st.divider()
 
