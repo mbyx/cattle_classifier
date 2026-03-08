@@ -185,14 +185,9 @@ if not st.session_state.has_registered:
                             else "Unknown"
                         )
 
-                        if tag_text != "UNREADABLE":
-                            if not any(
-                                d["tag"] == tag_text
-                                for d in st.session_state.detected_cows
-                            ):
-                                st.session_state.detected_cows.append(
-                                    {"tag": tag_text, "behaviour": label}
-                                )
+                        st.session_state.detected_cows.append(
+                            {"tag": tag_text, "behaviour": label}
+                        )
 
                         cv2.rectangle(
                             resized, (cx1, cy1), (cx2, cy2), COW_COLOR, STROKE_WIDTH
