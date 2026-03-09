@@ -57,8 +57,6 @@ class DBManager:
             self.conn.table(table_name).upsert(records).execute()  # type: ignore
             st.cache_data.clear()
 
-            st.cache_data.clear()
-
             updated_df = self.fetch_processed_data(table_name)
             st.session_state.database = updated_df
 

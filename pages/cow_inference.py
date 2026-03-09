@@ -77,7 +77,8 @@ with st.expander("Models Configuration"):
         index=safe_get_index(class_options, TARGET_CLS_MODEL),
     )
 
-    cow_conf = st.slider("Cow Confidence:", 0.0, 1.0, 0.50)
+    cow_conf = st.slider("Cow Confidence:", 0.0, 1.0, 0.30)
+    cls_conf = st.slider("Class Confidence", 0.0, 1.0, 0.25)
     tag_conf = st.slider("Tag Confidence:", 0.0, 1.0, 0.30)
     ocr_conf = st.slider("OCR Confidence:", 0.0, 1.0, 0.05)
     use_ocr = st.checkbox("Use OCR")
@@ -178,7 +179,9 @@ if not st.session_state.has_registered:
                                 STROKE_WIDTH,
                             )
 
-                        beh_res = cls_model.predict(cow_crop, verbose=False)
+                        beh_res = cls_model.predict(
+                            cow_crop, verbose=False, conf=cls_conf
+                        )
                         label = (
                             beh_res[0].names[beh_res[0].probs.top1]  # type: ignore
                             if beh_res[0].probs
