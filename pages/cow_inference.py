@@ -4,7 +4,6 @@ import pathlib
 import tempfile
 
 import cv2
-import easyocr
 import numpy as np
 import pandas as pd
 import pytz
@@ -80,7 +79,6 @@ with st.expander("Models Configuration"):
     cow_conf = st.slider("Cow Confidence:", 0.0, 1.0, 0.30)
     cls_conf = st.slider("Class Confidence", 0.0, 1.0, 0.25)
     tag_conf = st.slider("Tag Confidence:", 0.0, 1.0, 0.30)
-    ocr_conf = st.slider("OCR Confidence:", 0.0, 1.0, 0.05)
     use_ocr = st.checkbox("Use OCR")
 
 
@@ -140,8 +138,9 @@ if not st.session_state.has_registered:
                     for cow_box, tid in zip(cow_boxes, track_ids):
                         x1, y1, x2, y2 = cow_box
                         cx1, cy1 = max(0, x1 - OFFSET), max(0, y1 - OFFSET)
-                        cx2, cy2 = min(resized.shape[1], x2 + OFFSET), min(
-                            resized.shape[0], y2 + OFFSET
+                        cx2, cy2 = (
+                            min(resized.shape[1], x2 + OFFSET),
+                            min(resized.shape[0], y2 + OFFSET),
                         )
 
                         cow_crop = resized[cy1:cy2, cx1:cx2]
@@ -166,7 +165,7 @@ if not st.session_state.has_registered:
                             tag_crop = cow_crop[ty1:ty2, tx1:tx2]
                             if tag_crop.size > 0:
                                 tag_text = (
-                                    ocr.extract_tag_id(tag_crop, reader, ocr_conf)
+                                    ocr.extract_by_height_threshold(ocr.preprocess_image(tag_crop))
                                     if use_ocr
                                     else f"ID_{tid}"
                                 )

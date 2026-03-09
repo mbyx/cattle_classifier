@@ -1,51 +1,116 @@
-import cv2
-import easyocr
+# Taken from another research group (M. Hamdan)
+
+from rapidocr_onnxruntime import RapidOCR
 import numpy as np
-
-FAIL_STRING: str = "UNREADABLE"
-UPSCALE_FACTOR: int = 3
+from PIL import Image, ImageOps, ImageEnhance
 
 
-def preprocess_tag(tag_image):
-    """Preprocess the tag image so that it is easier for OCR to work."""
-    gray = cv2.cvtColor(tag_image, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
-    blurred = cv2.GaussianBlur(resized, (5, 5), 0)
-    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    kernel = np.ones((3, 3), np.uint8)
-    processed = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
-    if processed[0, 0] == 0:
-        processed = cv2.bitwise_not(processed)
+recognizer = RapidOCR()
 
-    return processed
+MISHAP_MAP = {
+    "|": "1",
+    "I": "1",
+    "l": "1",
+    "[": "1",
+    "]": "1",
+    "(": "1",
+    ")": "1",
+    "O": "0",
+    "o": "0",
+    "S": "5",
+    "s": "5",
+    "B": "8",
+    "G": "6",
+}
 
 
-# Taken from Hamdan.
-def extract_tag_id(
-    tag_image: np.ndarray, reader: easyocr.Reader | None = None, ocr_conf: float = 0.05
-) -> str:
-    """Take an OpenCV image of an ear tag and extract the tag id from it."""
+def preprocess_image(image_array: np.ndarray) -> np.ndarray:
+    # Convert numpy array to PIL for processing
+    if len(image_array.shape) == 3:
+        img_pil = Image.fromarray(image_array)
+    else:
+        img_pil = Image.fromarray(image_array)
 
-    if tag_image is None or tag_image.size == 0 or reader is None:
-        return FAIL_STRING
+    # Grayscale
+    img_gray = ImageOps.grayscale(img_pil)
 
-    processed_image = preprocess_tag(tag_image)
+    # Enhance contrast
+    img_contrast = ImageEnhance.Contrast(img_gray).enhance(2.0)
 
-    results = reader.readtext(
-        processed_image,
-        detail=1,
-        paragraph=False,
-        allowlist="0123456789",
-        width_ths=0.7,
-        contrast_ths=0.1,
-        min_size=8,
-    )
+    # Auto-level
+    img_final = ImageOps.autocontrast(img_contrast)
 
-    valid_text = [
-        text for (_, text, conf) in results if float(conf) >= ocr_conf and text.strip()
-    ]
+    return np.array(img_final)
 
-    if valid_text:
-        return "".join(valid_text).strip()
 
-    return FAIL_STRING
+def extract_text(image_array: np.ndarray) -> list:
+    result, _ = recognizer(image_array)
+    return result if result else []
+
+
+def clean_text(raw_text: str) -> str:
+    text = raw_text.strip()
+
+    # Apply character mapping
+    for char, replacement in MISHAP_MAP.items():
+        text = text.replace(char, replacement)
+
+    # Keep only digits
+    cleaned = ""
+    for ch in text:
+        if ch.isdigit():
+            cleaned += ch
+
+    return cleaned
+
+
+def get_bbox_height(bbox: list) -> float:
+    y_coords = [pt[1] for pt in bbox]
+    return max(y_coords) - min(y_coords)
+
+
+def get_bbox_width(bbox: list) -> float:
+    x_coords = [pt[0] for pt in bbox]
+    return max(x_coords) - min(x_coords)
+
+
+def get_bbox_area(bbox: list) -> float:
+    return get_bbox_width(bbox) * get_bbox_height(bbox)
+
+
+def extract_all_text(image_array: np.ndarray) -> tuple[str, str]:
+    ocr_results = extract_text(image_array)
+
+    if not ocr_results:
+        return "", ""
+
+    ocr_results.sort(key=lambda r: min([pt[0] for pt in r[0]]))
+
+    raw_text = "".join(r[1] for r in ocr_results).strip()
+    cleaned = clean_text(raw_text)
+
+    return raw_text, cleaned
+
+
+def extract_by_height_threshold(
+    image_array: np.ndarray, threshold_ratio: float = 0.60
+) -> tuple[str, str]:
+    ocr_results = extract_text(image_array)
+
+    if not ocr_results:
+        return "", ""
+
+    # Find height threshold
+    heights = [get_bbox_height(r[0]) for r in ocr_results]
+    max_height = max(heights)
+    threshold = max_height * threshold_ratio
+
+    # Filter and sort left-to-right
+    filtered = [r for r, h in zip(ocr_results, heights) if h >= threshold]
+    filtered.sort(key=lambda r: min([pt[0] for pt in r[0]]))
+
+    # Merge text
+    raw_text = "".join(r[1] for r in filtered).strip()
+    cleaned = clean_text(raw_text)
+
+    return raw_text, cleaned
